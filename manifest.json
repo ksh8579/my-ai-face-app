@@ -1,0 +1,22 @@
+{
+  "short_name": "AI 관상",
+  "name": "AI 관상 & 궁합",
+  "description": "AI가 당신의 관상, 닮은 연예인, 천생연분까지 분석해 드립니다.",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1f2937",
+  "background_color": "#111827",
+  "lang": "ko"
+}
