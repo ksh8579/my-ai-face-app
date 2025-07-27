@@ -5,7 +5,10 @@ import { GoogleGenAI, Type } from "@google/genai";
 const API_KEY = process.env.GOOGLE_API_KEY;
 
 if (!API_KEY) {
-  throw new Error("Google API key is not set in environment variables.");
+  // 실제 서비스에서는 에러를 던지는 대신, 로그를 남기고 사용자에게 친화적인 메시지를 반환하는 것이 좋습니다.
+  console.error("Google API key is not set in environment variables.");
+  // 이 함수는 서버에서만 실행되므로, 여기서 에러를 던져도 사용자에게 노출되지 않습니다.
+  throw new Error("Google API key is not configured on the server.");
 }
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -17,19 +20,36 @@ interface RequestBody {
   feature: 'physiognomy' | 'celebrity' | 'soulmate';
 }
 
+// CORS 헤더를 설정하는 함수
+const setCorsHeaders = (res: VercelResponse) => {
+    res.setHeader('Access-Control-Allow-Origin', '*'); // 프로덕션에서는 특정 도메인으로 제한하는 것이 안전합니다.
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    // 웹 브라우저의 사전 요청(preflight)을 처리하기 위한 부분입니다.
+    // CORS Preflight 요청 처리
+    setCorsHeaders(res);
     if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
+        return res.status(200).end();
     }
     
     if (req.method !== 'POST') {
+        res.setHeader('Allow', ['POST']);
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
     try {
+        if (!req.body) {
+             return res.status(400).json({ error: 'Request body is missing.' });
+        }
+
         const { image, mimeType, feature } = req.body as RequestBody;
+        
+        if (!image || !mimeType || !feature) {
+             return res.status(400).json({ error: 'Missing required fields in request body: image, mimeType, feature.' });
+        }
+
 
         const imagePart = {
             inlineData: {
@@ -158,7 +178,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 break;
 
             default:
-                throw new Error('Invalid feature specified.');
+                // `feature`가 유효하지 않은 경우
+                 return res.status(400).json({ error: `Invalid feature specified: ${feature}` });
         }
 
         // 성공 응답을 클라이언트에게 보냅니다.
@@ -168,6 +189,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.error('API Error:', error);
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
         // 에러 응답을 클라이언트에게 보냅니다.
-        return res.status(500).json({ error: `AI 서버와 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. (${errorMessage})` });
+        return res.status(500).json({ error: `AI 서버와 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.` });
     }
 }
